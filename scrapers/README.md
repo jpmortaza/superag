@@ -1,4 +1,4 @@
-# Scrapers — Superag
+# Scrapers — ImovelMap
 
 Scripts Node.js que populam a tabela `imoveis` no Supabase.
 
@@ -21,8 +21,9 @@ Define o actor da Apify em `APIFY_ACTOR_ID` (ex: `epctex/olx-scraper`).
 ```bash
 npm run redegaucha
 ```
-> ⚠️ Os seletores CSS em `redegaucha.mjs` são placeholders. Inspecionar
-> o HTML real do site e ajustar antes de usar em produção.
+Lê os sitemaps `sitemap-imoveis[-2|-3].xml` (~22k URLs) e extrai o payload
+RSC do Next.js (`self.__next_f.push`) de cada página — endereço, CEP,
+lat/long, preço, áreas e imagens. Variável `MAX_ITEMS` controla o limite.
 
 ### Distribuição diária
 ```bash

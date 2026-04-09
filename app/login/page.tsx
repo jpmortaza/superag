@@ -64,7 +64,7 @@ export default function LoginPage() {
           gap: 12
         }}
       >
-        <h1 style={{ fontSize: 24, marginBottom: 8 }}>Superag</h1>
+        <h1 style={{ fontSize: 24, marginBottom: 8 }}>ImovelMap</h1>
         <p style={{ color: "#666", marginBottom: 8 }}>
           {mode === "signin" ? "Entre na sua conta" : "Crie sua conta"}
         </p>

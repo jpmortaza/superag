@@ -22,7 +22,7 @@ export default async function AdminLayout({
           alignItems: "center"
         }}
       >
-        <strong style={{ marginRight: 20 }}>Superag · Admin</strong>
+        <strong style={{ marginRight: 20 }}>ImovelMap · Admin</strong>
         <Link href="/admin/fontes" style={linkStyle}>Fontes</Link>
         <Link href="/admin/extracoes" style={linkStyle}>Extrações</Link>
         <Link href="/imoveis" style={{ ...linkStyle, marginLeft: "auto" }}>

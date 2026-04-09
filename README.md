@@ -1,6 +1,8 @@
-# Superag
+# ImovelMap
 
-Plataforma para corretores fazerem agenciamento de imóveis: busca de imóveis na cidade, alertas de novos anúncios, login individual por corretor.
+Plataforma de agenciamento de imóveis: mapa público com os imóveis disponíveis na cidade e ferramentas para corretores encontrarem o proprietário e oferecerem agenciamento.
+
+Site: https://imovelmap.com
 
 ## Stack
 - Next.js 14 (App Router) + TypeScript
