@@ -23,12 +23,15 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "not authenticated" }, { status: 401 });
 
+  // Qualquer corretor autenticado pode disparar extrações. Os imóveis
+  // extraídos vão pra base comum e ficam visíveis pra todos os usuários.
+  // (O super_admin tem acesso adicional ao /admin; aqui não precisa.)
   const { data: me } = await supabase
     .from("corretores")
-    .select("role")
+    .select("id, role, ativo")
     .eq("id", user.id)
     .single();
-  if (me?.role !== "super_admin") {
+  if (!me || me.ativo === false) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

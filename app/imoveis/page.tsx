@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import LogoutButton from "./logout-button";
+import BuscarForm from "./buscar-form";
+import ExtrairButton from "./extrair-button";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ type Imovel = {
   title: string;
   price: number | null;
   price_formatted: string | null;
+  transaction_type: string | null;
   neighborhood: string | null;
   city: string | null;
   state: string | null;
@@ -23,30 +25,61 @@ type Imovel = {
   published_at: string | null;
 };
 
-export default async function ImoveisPage() {
+type SearchParams = {
+  q?: string;
+  tipo?: string;
+  bairro?: string;
+  quartos_min?: string;
+  preco_max?: string;
+};
+
+export default async function ImoveisPage({
+  searchParams
+}: {
+  searchParams: SearchParams;
+}) {
   const supabase = createClient();
 
   const {
     data: { user }
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
-  const { data: me } = await supabase
-    .from("corretores")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  const isSuperAdmin = me?.role === "super_admin";
+  let isSuperAdmin = false;
+  let isCorretor = false;
+  if (user) {
+    const { data: me } = await supabase
+      .from("corretores")
+      .select("role, ativo")
+      .eq("id", user.id)
+      .single();
+    isSuperAdmin = me?.role === "super_admin";
+    isCorretor = !!me && me.ativo !== false;
+  }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("imoveis")
     .select(
-      "id,title,price,price_formatted,neighborhood,city,state,bedrooms,bathrooms,area,parking_spaces,images,source,source_url,published_at"
+      "id,title,price,price_formatted,transaction_type,neighborhood,city,state,bedrooms,bathrooms,area,parking_spaces,images,source,source_url,published_at"
     )
     .eq("is_active", true)
     .order("first_seen_at", { ascending: false })
-    .limit(60);
+    .limit(120);
 
+  if (searchParams.tipo) query = query.eq("transaction_type", searchParams.tipo);
+  if (searchParams.bairro)
+    query = query.ilike("neighborhood", `%${searchParams.bairro}%`);
+  if (searchParams.quartos_min)
+    query = query.gte("bedrooms", Number(searchParams.quartos_min));
+  if (searchParams.preco_max)
+    query = query.lte("price", Number(searchParams.preco_max));
+  if (searchParams.q) {
+    const q = searchParams.q;
+    query = query.or(
+      `title.ilike.%${q}%,neighborhood.ilike.%${q}%,city.ilike.%${q}%`
+    );
+  }
+
+  const { data, error } = await query;
   const imoveis = (data ?? []) as Imovel[];
 
   return (
@@ -56,33 +89,45 @@ export default async function ImoveisPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 24
+          marginBottom: 20,
+          gap: 12,
+          flexWrap: "wrap"
         }}
       >
         <div>
-          <h1 style={{ fontSize: 28 }}>Imóveis</h1>
-          <p style={{ color: "#666", fontSize: 14 }}>
-            Logado como {user.email}
+          <h1 style={{ fontSize: 28 }}>
+            <Link href="/" style={{ color: "#111" }}>
+              ImovelMap
+            </Link>{" "}
+            · Imóveis
+          </h1>
+          <p style={{ color: "#666", fontSize: 13 }}>
+            {user
+              ? `Logado como ${user.email}`
+              : "Base compartilhada de imóveis em Porto Alegre"}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Link href="/" style={navLink}>
+            Mapa
+          </Link>
+          {isCorretor && <ExtrairButton fonteSlug="rgi-poa" />}
           {isSuperAdmin && (
-            <Link
-              href="/admin"
-              style={{
-                background: "#111",
-                color: "#fff",
-                padding: "8px 14px",
-                borderRadius: 8,
-                fontSize: 14
-              }}
-            >
+            <Link href="/admin" style={navBtn}>
               Admin
             </Link>
           )}
-          <LogoutButton />
+          {user ? (
+            <LogoutButton />
+          ) : (
+            <Link href="/login" style={navBtn}>
+              Entrar como corretor
+            </Link>
+          )}
         </div>
       </header>
+
+      <BuscarForm />
 
       {error && (
         <div
@@ -98,6 +143,10 @@ export default async function ImoveisPage() {
         </div>
       )}
 
+      <div style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>
+        {imoveis.length} imóveis
+      </div>
+
       {imoveis.length === 0 ? (
         <div
           style={{
@@ -108,7 +157,7 @@ export default async function ImoveisPage() {
             color: "#666"
           }}
         >
-          Nenhum imóvel cadastrado ainda. Rode o scraper para popular a base.
+          Nenhum imóvel encontrado com esses filtros.
         </div>
       ) : (
         <div
@@ -148,6 +197,9 @@ export default async function ImoveisPage() {
               <div style={{ padding: 14, flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 18 }}>
                   {i.price_formatted ?? "Preço sob consulta"}
+                  {i.transaction_type === "rent" && (
+                    <span style={{ fontSize: 11, color: "#666" }}> /mês</span>
+                  )}
                 </div>
                 <div
                   style={{
@@ -188,3 +240,18 @@ export default async function ImoveisPage() {
     </div>
   );
 }
+
+const navLink: React.CSSProperties = {
+  fontSize: 14,
+  color: "#444",
+  padding: "8px 12px",
+  borderRadius: 8
+};
+
+const navBtn: React.CSSProperties = {
+  fontSize: 14,
+  background: "#111",
+  color: "#fff",
+  padding: "8px 14px",
+  borderRadius: 8
+};
